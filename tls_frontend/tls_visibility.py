@@ -95,6 +95,14 @@ class TLS_Visibility:
             tls_session=f_session)
         tls_response_bytes = raw(tls_response)
         Debug.print_packet(tls_response)
+
+
+        self.session.record_handshake_message(bytes(tls_msg))
+        self.session.record_handshake_message(bytes(server_hello))
+        self.session.record_handshake_message(bytes(server_cert))
+        self.session.record_handshake_message(bytes(server_key_exchange))
+        self.session.record_handshake_message(bytes(server_hello_done))
+
         return tls_response_bytes
             
     def process_tls_handshake_key_exchange(self, tls_msg):    
@@ -109,6 +117,8 @@ class TLS_Visibility:
         keys = ClientDiffieHellmanPublic(bytes(tls_msg.exchkeys))
         self.session.set_client_dh_params(keys)
 
+        self.session.record_handshake_message(bytes(tls_msg))
+        
         return b'' # (No response necessary)
             
     def process_tls_handshake_finished(self, tls_msg):    
@@ -135,6 +145,11 @@ class TLS_Visibility:
         5. store the encrypted bytes in encrypted_finished_msg
         """
         
+        local_verify_data = session.compute_handshake_verify("read")
+        #local_verify_data ?= tls_msg.vdata
+        server_change_cipher_spec = TLSChangeCipherSpec()
+        server_finished_msg = TLSFinished(vdata=session.compute_handshake_verify("write"), tls_session=f_session)
+        encrypted_finished_msg = self.session.encrypt_tls_pkt(server_finished_msg)
 
         self.session.handshake = False
 

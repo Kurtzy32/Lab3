@@ -107,11 +107,10 @@ class TLSSession:
         self.pre_master_secret = self.server_dh_privkey.exchange(self.client_dh_pubkey)
         self.master_secret = PRF.compute_master_secret(self.pre_master_secret, self.client_random, self.server_random)
         key_block = PRF.derive_key_block(self.master_secret, self.server_random, self.client_random, self.key_block_len)
-        read_mac = 
-        write_mac = 
-        read_enc = 
-        write_enc = 
-
+        self.read_mac = key_block[0:self.mac_key_size]
+        self.write_mac = key_block[self.mac_key_size:(2 * self.mac_key_size)]
+        self.read_enc = key_block[(2 * self.mac_key_size):(2 * self.mac_key_size + self.enc_key_size)]
+        self.write_enc = key_block[(2 * self.mac_key_size + self.enc_key_size):((2 * self.mac_key_size + 2 * self.enc_key_size))]
         pass
 
     def tls_sign(self, bytes):
@@ -141,6 +140,11 @@ class TLSSession:
         6. NOTE: When you do the HMAC, don't forget to re-create the header with the plaintext len!
         """
         plaintext = b''
+        iv = tls_pkt_bytes[0:16]
+        packet_bytes = tls_pkt_bytes[16:]
+        c = Cipher(algorithms.AES(self.read_enc), modes.CBC(iv))
+        decrypt = c.decryptor()
+        plaintext = decrypt.update(packet_bytes)
         return plaintext
 
     def encrypt_tls_pkt(self, tls_pkt, test_iv=None):
@@ -183,7 +187,8 @@ class TLSSession:
             arg_4: the master secret
         """
         verify_data = b""
-        
+        verify_data = self.PRF.compute_verify_data("server", mode, self.handshake_messages, self.master_secret)
+
         return verify_data
 
     def time_and_random(self, time_part, random_part=None):
