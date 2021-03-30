@@ -80,6 +80,15 @@ class TLS_Visibility:
         6. store in the provided server_hello, server_cert, server_key_exchange,
             and server_hello_done variables
         """
+
+        self.session.set_client_random(tls_msg.gmt_unix_time, tls_msg.random_bytes)
+        server_hello = TLSServerHello(gmt_unix_time = self.session.server_time, random_bytes = self.session.server_random_bytes, 
+            version = self.session.tls_version, cipher = TLS_DHE_RSA_WITH_AES_128_CBC_SHA.val)
+        server_cert = TLSCertificate(certs = [self.cert])
+        new_sig = self.session.tls_sign(self.session.client_random + self.session.server_random + bytes(self.session.server_dh_params))
+        server_key_exchange = TLSServerKeyExchange(params = self.session.server_dh_params, sig = new_sig)
+        server_hello_done = TLSServerHelloDone()
+
         f_session = tlsSession()
         f_session.tls_version = 0x303
         tls_response = TLS(msg=[server_hello, server_cert, server_key_exchange, server_hello_done],
@@ -96,6 +105,10 @@ class TLS_Visibility:
         1. process the client key exchange by extracting the "exchkeys"
         2. These can be passed directly to session.set_client_dh_params
         """ 
+
+        keys = tls_msg.exchkeys
+        self.session.set_client_dh_params(keys)
+
         return b'' # (No response necessary)
             
     def process_tls_handshake_finished(self, tls_msg):    

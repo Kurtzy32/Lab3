@@ -66,6 +66,9 @@ class TLSSession:
         1. set client_time, client_bytes
         2. calculate client_random. There is a method for this
         """
+        self.client_random_bytes = random_part
+        self.client_time = time_part
+        self.client_random = time_and_random(time_part, random_part)
         pass
 
     def set_server_random(self):
@@ -74,6 +77,10 @@ class TLSSession:
         1. set server_time, server_bytes
         2. calculate server_random. There is a method for this
         """
+        self.server_random_bytes = randstring(28)
+        self.server_time = int (timestamp())
+        self.server_random = time_and_random(self.server_time, self.server_random_bytes)
+
         pass
 
     def set_server_rsa_privkey(self, rsa_privkey):
@@ -104,7 +111,8 @@ class TLSSession:
         1. Create a TLSSignature object. set sig_alg to 0x0401
         2. use this object to sign the bytes
         """
-        sig = None # this should be the signature object
+        sig = _TLSSignature(sig_alg = 0x0401)
+        sig._update_sig(bytes, self.server_rsa_privkey)
         return sig
 
 
