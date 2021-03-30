@@ -106,7 +106,7 @@ class TLS_Visibility:
         2. These can be passed directly to session.set_client_dh_params
         """ 
 
-        keys = tls_msg.exchkeys
+        keys = ClientDiffieHellmanPublic(bytes(tls_msg.exchkeys))
         self.session.set_client_dh_params(keys)
 
         return b'' # (No response necessary)

@@ -104,6 +104,14 @@ class TLSSession:
         3. calculate a key block
         4. split the key block into read and write keys for enc and mac
         """
+        self.pre_master_secret = self.server_dh_privkey.exchange(self.client_dh_pubkey)
+        self.master_secret = PRF.compute_master_secret(self.pre_master_secret, self.client_random, self.server_random)
+        key_block = PRF.derive_key_block(self.master_secret, self.server_random, self.client_random, self.key_block_len)
+        read_mac = 
+        write_mac = 
+        read_enc = 
+        write_enc = 
+
         pass
 
     def tls_sign(self, bytes):
