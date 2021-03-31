@@ -142,9 +142,11 @@ class TLSSession:
         plaintext = b''
         iv = tls_pkt_bytes[0:16]
         packet_bytes = tls_pkt_bytes[16:]
-        c = Cipher(algorithms.AES(self.read_enc), modes.CBC(iv))
+        c = Cipher(algorithms.AES(self.read_enc), modes.CBC(iv), default_backend())
         decrypt = c.decryptor()
-        plaintext = decrypt.update(packet_bytes)
+        data = decrypt.update(packet_byte) + decrypt.finalize()
+        real_text = data[:-(int(data[-1]) + 1)]
+        plaintext = real_text[:-20]
         return plaintext
 
     def encrypt_tls_pkt(self, tls_pkt, test_iv=None):
@@ -171,7 +173,18 @@ class TLSSession:
         """
         
         ciphertext = b""
-        
+        temp = crypto_hmac.HMAC(self.write_mac, hashes.SHA1(), default_backend())
+        temp.update(struct.pack("!Q", self.write_seq_num) + tls_pkt_bytes[:5] + plaintext_bytes)
+        mac = temp.finalize()
+        self.write_seq_num += 1
+        pad_length = 16 - ((len(plaintext_bytes) + len(mac)) % 16)
+        pad = struct.pack("!B", pad_length - 1) * pad_length
+        iv = os.urandom(16)
+        c = Cipher(algorithms.AES(self.write_enc), modes.CBC(iv), default_backend())
+        encryptor = c.encryptor()
+        ciphertext = encryptor.update(plaintext_bytes + mac + pad) + encryptor.finalize()
+        temp_cipher = tls_pkt_bytes[:3] + struct.pack("!H", len(ciphertext + iv)) + (ciphertext + iv)
+        ciphertext = temp_cipher 
         return ciphertext
 
     def record_handshake_message(self, m):

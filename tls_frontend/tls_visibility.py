@@ -146,7 +146,6 @@ class TLS_Visibility:
         """
         
         local_verify_data = session.compute_handshake_verify("read")
-        #local_verify_data ?= tls_msg.vdata
         server_change_cipher_spec = TLSChangeCipherSpec()
         server_finished_msg = TLSFinished(vdata=session.compute_handshake_verify("write"), tls_session=f_session)
         encrypted_finished_msg = self.session.encrypt_tls_pkt(server_finished_msg)
