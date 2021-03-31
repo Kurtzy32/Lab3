@@ -171,7 +171,8 @@ class TLS_Visibility:
         """
         plaintext = b""
         
-        
+        plaintext = self.session.decrypt_tls_pkt(tls_pkt)
+
         Debug.print("attempt to cast to TLS Finished")
         f_session = tlsSession()
         f_session.tls_version = 0x303
@@ -240,6 +241,8 @@ class TLS_Visibility:
                 2. decrypt the packet to application_data. You should already have a method for this.
                 3. store in application_data
                 """
+                application_data = self.session.decrypt_tls_pkt(tls_pkt)
+                
                 application_pkt = TLSApplicationData(application_data)
                 Debug.print("Got {} bytes of decrypted data".format(len(application_pkt.data)))
                 output += application_pkt.data
